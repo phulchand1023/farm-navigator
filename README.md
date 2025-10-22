@@ -2,6 +2,11 @@
 
 A comprehensive agricultural platform that leverages NASA satellite data to provide farmers with intelligent farming decisions, crop recommendations, and yield predictions.
 
+## 🚀 Live Demo
+
+- **Frontend**: https://3e6d24f5.nasa-farm-navigator.pages.dev
+- **Backend API**: https://nasa-farm-navigator.phulchandkr7715.workers.dev
+
 ## Features
 
 ### 🌍 Multi-Language Support
@@ -42,8 +47,8 @@ A comprehensive agricultural platform that leverages NASA satellite data to prov
 - **Axios** for API calls
 
 ### Backend
-- **Node.js** with Express
-- **MongoDB** with Mongoose
+- **Cloudflare Workers** with Hono framework
+- **Cloudflare D1** database
 - **JWT** authentication
 - **bcrypt** for password hashing
 - **Zod** for validation
@@ -57,7 +62,7 @@ A comprehensive agricultural platform that leverages NASA satellite data to prov
 ## Project Structure
 
 ```
-nasa3/
+farm-navigator/
 ├── client/                 # React frontend
 │   ├── public/
 │   │   └── models/         # TensorFlow Lite models
@@ -69,59 +74,79 @@ nasa3/
 │   │   ├── context/        # React context providers
 │   │   └── locales/        # Translation files
 │   └── package.json
-└── server/                 # Node.js backend
-    ├── config/             # Database and environment config
-    ├── controllers/        # Route handlers
-    ├── models/             # MongoDB schemas
-    ├── routes/             # API routes
-    ├── services/           # Business logic
-    ├── middleware/         # Express middleware
-    ├── utils/              # Helper functions
-    └── validators/         # Input validation schemas
+├── src/                    # Cloudflare Workers backend
+│   ├── routes/             # API routes
+│   └── index.js            # Worker entry point
+├── migrations/             # Database migrations
+└── wrangler.toml          # Cloudflare configuration
 ```
 
-## Installation
+## Installation & Setup
 
 ### Prerequisites
 - Node.js 18+
-- MongoDB
-- NASA POWER API access
+- Cloudflare account
+- Wrangler CLI
 
-### Setup
+### Local Development
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
-cd nasa3
+git clone https://github.com/phulchand1023/farm-navigator.git
+cd farm-navigator
 ```
 
 2. **Install dependencies**
 ```bash
-# Install server dependencies
-cd server
+# Install backend dependencies
 npm install
 
-# Install client dependencies
-cd ../client
+# Install frontend dependencies
+cd client
 npm install
+cd ..
 ```
 
 3. **Environment Configuration**
 ```bash
-# Create server/.env
-MONGO_URI=mongodb://localhost:27017/nasa-farm
-JWT_SECRET=your-jwt-secret
-NASA_API_URL=https://power.larc.nasa.gov/api/temporal/daily
-PORT=5000
+# Copy environment examples
+cp .env.example .env
+cp client/.env.example client/.env
+
+# Edit .env files with your configuration
 ```
 
-4. **Start the application**
+4. **Database Setup**
 ```bash
-# Start server (from server directory)
-npm run dev
+# Create D1 database
+wrangler d1 create nasa-farm-db
 
-# Start client (from client directory)
+# Apply migrations
+wrangler d1 migrations apply nasa-farm-db --remote
+```
+
+5. **Start Development**
+```bash
+# Start backend (Cloudflare Workers)
+wrangler dev
+
+# Start frontend (in another terminal)
+cd client
 npm run dev
+```
+
+### Deployment
+
+1. **Deploy Backend**
+```bash
+wrangler deploy
+```
+
+2. **Deploy Frontend**
+```bash
+cd client
+npm run build
+wrangler pages deploy dist --project-name=nasa-farm-navigator
 ```
 
 ## API Endpoints
@@ -188,17 +213,27 @@ const YourComponent = () => {
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+4. Commit your changes (`git commit -m 'Add some amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
 For support and questions, please open an issue in the repository.
 
+## Acknowledgments
+
+- NASA POWER API for satellite data
+- Cloudflare for hosting infrastructure
+- TensorFlow team for ML models
+- React and Vite communities
+
 ---
+
+**Built with ❤️ for farmers worldwide**
