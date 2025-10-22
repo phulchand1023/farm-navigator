@@ -1,0 +1,28 @@
+{
+  "name": "nasa-farm-navigator-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for NASA Farm Navigator API",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "tail": "wrangler tail",
+    "kv:create": "wrangler kv:namespace create CACHE",
+    "d1:create": "wrangler d1 create nasa-farm-db",
+    "d1:migrate": "wrangler d1 migrations apply nasa-farm-db",
+    "r2:create": "wrangler r2 bucket create nasa-farm-storage"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "hono": "^4.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0",
+    "wrangler": "^4.44.0"
+  },
+  "type": "module"
+}

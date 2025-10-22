@@ -28,17 +28,20 @@ const MainDashboard = () => {
 
   const getProfitableCrops = () => {
     // Real mandi prices from agmarknet.gov.in (₹/quintal) - Updated Jan 2025
+    const location = JSON.parse(localStorage.getItem('farmerLocation') || '{}');
+    const localMarket = location.districtName ? `${location.districtName} Mandi` : 'Local Mandi';
+    
     const mandiPrices = {
-      'Wheat': { price: 2350, cost: 1900, profit: 450, profitMargin: 24, market: 'Ghaziabad Mandi' },
-      'Rice': { price: 2950, cost: 2300, profit: 650, profitMargin: 28, market: 'Meerut Mandi' },
-      'Maize': { price: 2100, cost: 1550, profit: 550, profitMargin: 35, market: 'Ghaziabad Mandi' },
-      'Cotton': { price: 6800, cost: 4600, profit: 2200, profitMargin: 48, market: 'Hapur Mandi' },
-      'Sugarcane': { price: 380, cost: 290, profit: 90, profitMargin: 31, market: 'Meerut Sugar Mill' },
-      'Mustard': { price: 5450, cost: 3900, profit: 1550, profitMargin: 40, market: 'Ghaziabad Mandi' },
-      'Chickpea': { price: 6100, cost: 4300, profit: 1800, profitMargin: 42, market: 'Meerut Mandi' },
-      'Soybean': { price: 4400, cost: 3300, profit: 1100, profitMargin: 33, market: 'Hapur Mandi' },
-      'Groundnut': { price: 5750, cost: 4100, profit: 1650, profitMargin: 40, market: 'Ghaziabad Mandi' },
-      'Sunflower': { price: 6450, cost: 4600, profit: 1850, profitMargin: 40, market: 'Meerut Mandi' }
+      'Wheat': { price: 2350, cost: 1900, profit: 450, profitMargin: 24, market: localMarket },
+      'Rice': { price: 2950, cost: 2300, profit: 650, profitMargin: 28, market: localMarket },
+      'Maize': { price: 2100, cost: 1550, profit: 550, profitMargin: 35, market: localMarket },
+      'Cotton': { price: 6800, cost: 4600, profit: 2200, profitMargin: 48, market: localMarket },
+      'Sugarcane': { price: 380, cost: 290, profit: 90, profitMargin: 31, market: `${location.districtName || 'Local'} Sugar Mill` },
+      'Mustard': { price: 5450, cost: 3900, profit: 1550, profitMargin: 40, market: localMarket },
+      'Chickpea': { price: 6100, cost: 4300, profit: 1800, profitMargin: 42, market: localMarket },
+      'Soybean': { price: 4400, cost: 3300, profit: 1100, profitMargin: 33, market: localMarket },
+      'Groundnut': { price: 5750, cost: 4100, profit: 1650, profitMargin: 40, market: localMarket },
+      'Sunflower': { price: 6450, cost: 4600, profit: 1850, profitMargin: 40, market: localMarket }
     };
     
     // Get current month suitable crops
@@ -139,7 +142,10 @@ const MainDashboard = () => {
 
   const fetchWeatherForecast = async () => {
     try {
-      const response = await axios.get(`https://api.weatherapi.com/v1/forecast.json?key=5610ac259e9a46db96d164314252709&q=Ghaziabad&days=7`);
+      const location = JSON.parse(localStorage.getItem('farmerLocation') || '{}');
+      const weatherLocation = location.districtName || location.townName || 'Delhi';
+      
+      const response = await axios.get(`https://api.weatherapi.com/v1/forecast.json?key=5610ac259e9a46db96d164314252709&q=${weatherLocation}&days=7`);
       console.log('Weather data:', response.data.forecast.forecastday);
       setWeatherForecast(response.data.forecast.forecastday);
     } catch (error) {
@@ -291,7 +297,7 @@ const MainDashboard = () => {
             
             <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
               <p className="text-sm text-yellow-800">
-                <strong>💡 {qt('tip', selectedLanguage)}:</strong> {selectedLanguage === 'hi' ? 'ये फसलें गाजियाबाद की जलवायु के लिए आदर्श हैं' : 'These crops are ideal for Ghaziabad\'s climate in'} {qt(new Date().toLocaleDateString('en-US', { month: 'long' }), selectedLanguage) || new Date().toLocaleDateString('en-US', { month: 'long' })}. 
+                <strong>💡 {qt('tip', selectedLanguage)}:</strong> {selectedLanguage === 'hi' ? `ये फसलें ${locationData?.districtName || 'आपके क्षेत्र'} की जलवायु के लिए आदर्श हैं` : `These crops are ideal for ${locationData?.districtName || 'your area'}'s climate in`} {qt(new Date().toLocaleDateString('en-US', { month: 'long' }), selectedLanguage) || new Date().toLocaleDateString('en-US', { month: 'long' })}. 
                 {selectedLanguage === 'hi' ? 'बुवाई से पहले मिट्टी की तैयारी और मौसम पूर्वानुमान पर विचार करें।' : 'Consider soil preparation and weather forecasts before planting.'}
               </p>
             </div>

@@ -21,10 +21,12 @@ const LocationSelection = () => {
   const [districts, setDistricts] = useState([]);
   const [towns, setTowns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [soilData, setSoilData] = useState(null);
+  const [rainfallData, setRainfallData] = useState(null);
 
   useEffect(() => {
     fetchStates();
-    // Voice welcome message
     const welcomeMsg = qt('select_location', selectedLanguage) || 'Select your location';
     voiceFeedback.onPageLoad(welcomeMsg, selectedLanguage);
   }, [selectedLanguage]);
@@ -119,10 +121,6 @@ const LocationSelection = () => {
     setTowns(commonTowns);
   };
 
-  const [gettingLocation, setGettingLocation] = useState(false);
-  const [soilData, setSoilData] = useState(null);
-  const [rainfallData, setRainfallData] = useState(null);
-
   const getSoilData = async (latitude, longitude) => {
     try {
       const response = await axios.get(`https://rest.isric.org/soilgrids/v2.0/properties/query`, {
@@ -165,48 +163,183 @@ const LocationSelection = () => {
     }
   };
 
+  const findBestStateMatch = (stateName) => {
+    if (!stateName) return null;
+    
+    const normalizedInput = stateName.toLowerCase().trim();
+    
+    let match = states.find(state => 
+      state.state_name.toLowerCase() === normalizedInput
+    );
+    
+    if (match) return match;
+    
+    match = states.find(state => 
+      state.state_name.toLowerCase().includes(normalizedInput) ||
+      normalizedInput.includes(state.state_name.toLowerCase())
+    );
+    
+    return match;
+  };
+  
+  const findBestDistrictMatch = (districtName, districts) => {
+    if (!districtName) return null;
+    
+    const normalizedInput = districtName.toLowerCase().trim();
+    
+    let match = districts.find(district => 
+      district.district_name.toLowerCase() === normalizedInput
+    );
+    
+    if (match) return match;
+    
+    match = districts.find(district => 
+      district.district_name.toLowerCase().includes(normalizedInput) ||
+      normalizedInput.includes(district.district_name.toLowerCase())
+    );
+    
+    return match;
+  };
+
+  const getLocationFromCoords = async (latitude, longitude) => {
+    try {
+      const geocodingPromises = [
+        axios.get(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`),
+        axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`)
+      ];
+      
+      const results = await Promise.allSettled(geocodingPromises);
+      let locationData = null;
+      
+      if (results[0].status === 'fulfilled') {
+        const data = results[0].value.data;
+        locationData = {
+          state: data.principalSubdivision,
+          district: data.locality || data.city,
+          city: data.city || data.locality,
+          country: data.countryName
+        };
+      }
+      
+      if (!locationData && results[1].status === 'fulfilled') {
+        const data = results[1].value.data;
+        locationData = {
+          state: data.address?.state,
+          district: data.address?.state_district || data.address?.county,
+          city: data.address?.city || data.address?.town || data.address?.village,
+          country: data.address?.country
+        };
+      }
+      
+      if (!locationData || locationData.country !== 'India') {
+        throw new Error('Location not in India or geocoding failed');
+      }
+      
+      const matchedState = findBestStateMatch(locationData.state);
+      
+      if (matchedState) {
+        const stateDistricts = getPredefinedDistricts(matchedState.state_name);
+        const matchedDistrict = findBestDistrictMatch(locationData.district, stateDistricts) || stateDistricts[0];
+        
+        const stateTowns = [
+          { town_id: 1, town_name: locationData.city || locationData.district || 'Current Location' },
+          { town_id: 2, town_name: `${matchedDistrict.district_name} Rural` },
+          { town_id: 3, town_name: `${matchedDistrict.district_name} Urban` },
+          { town_id: 4, town_name: 'Nearby Village' },
+          { town_id: 5, town_name: 'Market Area' }
+        ];
+        
+        return {
+          location: {
+            stateId: matchedState.state_id.toString(),
+            stateName: matchedState.state_name,
+            districtId: matchedDistrict.district_id.toString(),
+            districtName: matchedDistrict.district_name,
+            townId: '1',
+            townName: locationData.city || locationData.district || 'Current Location'
+          },
+          districts: stateDistricts,
+          towns: stateTowns
+        };
+      }
+      
+      throw new Error('State not found in supported list');
+      
+    } catch (error) {
+      console.error('Enhanced geocoding failed:', error);
+      const upDistricts = getPredefinedDistricts('Uttar Pradesh');
+      const ghaziabadDistrict = upDistricts.find(d => d.district_name === 'Ghaziabad');
+      
+      return {
+        location: {
+          stateId: '26',
+          stateName: 'Uttar Pradesh',
+          districtId: ghaziabadDistrict.district_id.toString(),
+          districtName: 'Ghaziabad',
+          townId: '2',
+          townName: 'Muradnagar'
+        },
+        districts: upDistricts,
+        towns: [
+          { town_id: 1, town_name: 'Ghaziabad City' },
+          { town_id: 2, town_name: 'Muradnagar' },
+          { town_id: 3, town_name: 'Main Market' }
+        ]
+      };
+    }
+  };
+
   const handleAutoLocation = () => {
     setGettingLocation(true);
     voiceFeedback.onSelect(qt('getting_location', selectedLanguage) || 'Getting your location', selectedLanguage);
     
-    // Instantly set UP -> Ghaziabad -> Muradnagar
-    const upDistricts = getPredefinedDistricts('Uttar Pradesh');
-    const ghaziabadDistrict = upDistricts.find(d => d.district_name === 'Ghaziabad');
-    
-    setLocation({
-      stateId: '26',
-      stateName: 'Uttar Pradesh',
-      districtId: ghaziabadDistrict.district_id.toString(),
-      districtName: 'Ghaziabad',
-      townId: '2',
-      townName: 'Muradnagar'
-    });
-    
-    // Set districts and towns for dropdowns
-    setDistricts(upDistricts);
-    setTowns([
-      { town_id: 1, town_name: 'Ghaziabad City' },
-      { town_id: 2, town_name: 'Muradnagar' },
-      { town_id: 3, town_name: 'Main Market' },
-      { town_id: 4, town_name: 'Civil Lines' },
-      { town_id: 5, town_name: 'Industrial Area' }
-    ]);
-    
-    // Fetch soil and rainfall data in background
-    const latitude = 28.6692;
-    const longitude = 77.4538;
-    
-    Promise.all([
-      getSoilData(latitude, longitude),
-      getRainfallData(latitude, longitude)
-    ]).then(([soil, rainfall]) => {
-      setSoilData(soil);
-      setRainfallData(rainfall);
-    }).catch(error => {
-      console.error('Error fetching environmental data:', error);
-    });
-    
-    setGettingLocation(false);
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by this browser.');
+      setGettingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        try {
+          const locationData = await getLocationFromCoords(latitude, longitude);
+          
+          if (locationData) {
+            setLocation(locationData.location);
+            setDistricts(locationData.districts);
+            setTowns(locationData.towns);
+          }
+          
+          Promise.all([
+            getSoilData(latitude, longitude),
+            getRainfallData(latitude, longitude)
+          ]).then(([soil, rainfall]) => {
+            setSoilData(soil);
+            setRainfallData(rainfall);
+          }).catch(error => {
+            console.error('Error fetching environmental data:', error);
+          });
+          
+        } catch (error) {
+          console.error('Error getting location details:', error);
+          alert('Could not determine your location. Please select manually.');
+        }
+        
+        setGettingLocation(false);
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        alert('Unable to get your location. Please select manually.');
+        setGettingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
   };
 
   const handleSubmit = (e) => {
@@ -263,11 +396,7 @@ const LocationSelection = () => {
                 townId: '',
                 townName: ''
               });
-              if (selectedState) {
-                voiceFeedback.onSelect(`${qt('state_selected', selectedLanguage) || 'State selected'}: ${selectedState.state_name}`, selectedLanguage);
-              }
             }}
-            onFocus={() => voiceFeedback.onFocus(qt('select_state', selectedLanguage) || 'Select your state', selectedLanguage)}
             className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500"
             required
           >
@@ -288,11 +417,7 @@ const LocationSelection = () => {
                 townId: '',
                 townName: ''
               });
-              if (selectedDistrict) {
-                voiceFeedback.onSelect(`${qt('district_selected', selectedLanguage) || 'District selected'}: ${selectedDistrict.district_name}`, selectedLanguage);
-              }
             }}
-            onFocus={() => voiceFeedback.onFocus(qt('select_district', selectedLanguage) || 'Select your district', selectedLanguage)}
             className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500"
             disabled={!location.stateId}
             required
@@ -312,11 +437,7 @@ const LocationSelection = () => {
                 townId: e.target.value,
                 townName: selectedTown?.town_name || ''
               });
-              if (selectedTown) {
-                voiceFeedback.onSelect(`${qt('town_selected', selectedLanguage) || 'Town selected'}: ${selectedTown.town_name}`, selectedLanguage);
-              }
             }}
-            onFocus={() => voiceFeedback.onFocus(qt('select_town_village', selectedLanguage) || 'Select your town or village', selectedLanguage)}
             className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500"
             disabled={!location.districtId}
             required
@@ -337,6 +458,36 @@ const LocationSelection = () => {
         </form>
         )}
         
+        {/* Current Location Display */}
+        {location.stateName && (
+          <motion.div
+            className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <h3 className="font-bold text-green-700 mb-3">📍 {qt('selected_location', selectedLanguage) || 'Selected Location'}</h3>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">🏛️</span>
+                <p className="text-sm"><strong>{qt('state', selectedLanguage) || 'State'}:</strong> {location.stateName}</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">🏘️</span>
+                <p className="text-sm"><strong>{qt('district', selectedLanguage) || 'District'}:</strong> {location.districtName}</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">🏠</span>
+                <p className="text-sm"><strong>{qt('town_village', selectedLanguage) || 'Town/Village'}:</strong> {location.townName}</p>
+              </div>
+              <div className="mt-3 p-2 bg-white rounded border">
+                <p className="text-xs text-gray-600">
+                  <strong>{qt('full_address', selectedLanguage) || 'Full Address'}:</strong> {location.townName}, {location.districtName}, {location.stateName}, India
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Soil and Rainfall Data Display */}
         {(soilData || rainfallData) && (
           <motion.div

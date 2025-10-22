@@ -40,6 +40,11 @@ const register = async (req, res, next) => {
       token,
     });
   } catch (err) {
+    // Handle Zod validation errors
+    if (err.name === 'ZodError') {
+      const errorMessage = err.errors[0]?.message || 'Validation failed';
+      return res.status(400).json({ message: errorMessage });
+    }
     // Handle duplicate key error from MongoDB
     if (err.code === 11000) {
       const field = Object.keys(err.keyValue)[0];
@@ -76,6 +81,11 @@ const login = async (req, res, next) => {
       token,
     });
   } catch (err) {
+    // Handle Zod validation errors
+    if (err.name === 'ZodError') {
+      const errorMessage = err.errors[0]?.message || 'Validation failed';
+      return res.status(400).json({ message: errorMessage });
+    }
     next(err);
   }
 };

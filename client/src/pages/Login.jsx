@@ -1,17 +1,51 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import api from '../api/client';
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    console.log('Login:', { email, password });
-    navigate('/location-selection');
+    setLoading(true);
+    setError('');
+    
+    // Client-side validation
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      
+      if (response.data.token) {
+        localStorage.setItem('authToken', response.data.token);
+        localStorage.setItem('userType', 'authenticated');
+        localStorage.setItem('userData', JSON.stringify(response.data.user));
+        navigate('/location-selection');
+      } else {
+        setError('Login failed. Please check your credentials.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      
+      // Handle Zod validation errors
+      if (error.response?.status === 400 && error.response?.data?.message?.includes('ZodError')) {
+        setError('Password must be at least 6 characters long');
+      } else {
+        setError(error.response?.data?.message || 'Invalid email or password. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGuestLogin = () => {
@@ -36,7 +70,9 @@ const Login = () => {
             animate={{ scale: 1 }}
             transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
           >
-            <span className="text-3xl text-white">🌾</span>
+            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+              <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+            </div>
           </motion.div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent mb-2">
             Farm Navigator
@@ -45,9 +81,19 @@ const Login = () => {
         </div>
         
         <form onSubmit={handleLogin} className="space-y-6">
+          {error && (
+            <motion.div
+              className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {error}
+            </motion.div>
+          )}
+          
           <div>
             <label className="block text-gray-700 font-semibold mb-2">
-              📧 Email Address
+              Email Address
             </label>
             <input
               type="email"
@@ -56,12 +102,13 @@ const Login = () => {
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
               placeholder="Enter your email"
               required
+              disabled={loading}
             />
           </div>
           
           <div>
             <label className="block text-gray-700 font-semibold mb-2">
-              🔒 Password
+              Password
             </label>
             <div className="relative">
               <input
@@ -71,6 +118,7 @@ const Login = () => {
                 className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
                 placeholder="Enter your password"
                 required
+                disabled={loading}
               />
               <button
                 type="button"
@@ -84,11 +132,19 @@ const Login = () => {
           
           <motion.button
             type="submit"
-            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-4 rounded-xl font-semibold shadow-lg transform transition-all duration-200"
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 rounded-xl font-semibold shadow-lg transform transition-all duration-200"
+            whileHover={{ scale: loading ? 1 : 1.02, y: loading ? 0 : -2 }}
+            whileTap={{ scale: loading ? 1 : 0.98 }}
           >
-            🚀 Sign In to Dashboard
+            {loading ? (
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Signing In...</span>
+              </div>
+            ) : (
+              'Sign In to Dashboard'
+            )}
           </motion.button>
         </form>
         
@@ -109,7 +165,7 @@ const Login = () => {
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
         >
-          👤 Continue as Guest
+          Continue as Guest
         </motion.button>
         
         <div className="mt-8 text-center">

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { SideMenuProvider } from "./context/SideMenuContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { initializeModels } from "./utils/modelLoader";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import VoiceToggle from "./components/VoiceToggle";
 import Dashboard from "./pages/Dashboard";
@@ -50,23 +51,23 @@ export default function App() {
         <Route path="/decisions" element={<><Navbar /><Decisions /></>} />
         <Route path="/farmer-profile" element={<><Navbar /><FarmerProfile /></>} />
         <Route path="/language-selection" element={<><Navbar /><LanguageSelection /></>} />
-        <Route path="/location-selection" element={<><Navbar /><LocationSelection /></>} />
-        <Route path="/soil-rainfall" element={<><Navbar /><SoilRainfall /></>} />
-        <Route path="/crop-info" element={<><Navbar /><CropInfo /></>} />
-        <Route path="/recommendations" element={<><Navbar /><Recommendations /></>} />
-        <Route path="/main-dashboard" element={<MainDashboard />} />
-        <Route path="/crop-history" element={<><Navbar /><CropHistory /></>} />
-        <Route path="/crop-yield" element={<><Navbar /><CropYield /></>} />
-        <Route path="/farm-size" element={<><Navbar /><FarmSize /></>} />
-        <Route path="/soil-test" element={<><Navbar /><SoilTest /></>} />
-        <Route path="/schemes" element={<><Navbar /><GovernmentSchemes /></>} />
-        <Route path="/expert" element={<><Navbar /><TalkToExpert /></>} />
-        <Route path="/insurance" element={<><Navbar /><CropInsurance /></>} />
-        <Route path="/emergency" element={<><Navbar /><EmergencyAlerts /></>} />
-        <Route path="/market-prices" element={<><Navbar /><MarketPrices /></>} />
-        <Route path="/rental" element={<><Navbar /><MachineRental /></>} />
-        <Route path="/training" element={<><Navbar /><TrainingVideos /></>} />
-        <Route path="/irrigation-source" element={<><Navbar /><IrrigationSource /></>} />
+        <Route path="/location-selection" element={<ProtectedRoute><><Navbar /><LocationSelection /></></ProtectedRoute>} />
+        <Route path="/soil-rainfall" element={<ProtectedRoute><><Navbar /><SoilRainfall /></></ProtectedRoute>} />
+        <Route path="/crop-info" element={<ProtectedRoute><><Navbar /><CropInfo /></></ProtectedRoute>} />
+        <Route path="/recommendations" element={<ProtectedRoute><><Navbar /><Recommendations /></></ProtectedRoute>} />
+        <Route path="/main-dashboard" element={<ProtectedRoute><MainDashboard /></ProtectedRoute>} />
+        <Route path="/crop-history" element={<ProtectedRoute><><Navbar /><CropHistory /></></ProtectedRoute>} />
+        <Route path="/crop-yield" element={<ProtectedRoute><><Navbar /><CropYield /></></ProtectedRoute>} />
+        <Route path="/farm-size" element={<ProtectedRoute><><Navbar /><FarmSize /></></ProtectedRoute>} />
+        <Route path="/soil-test" element={<ProtectedRoute><><Navbar /><SoilTest /></></ProtectedRoute>} />
+        <Route path="/schemes" element={<ProtectedRoute><><Navbar /><GovernmentSchemes /></></ProtectedRoute>} />
+        <Route path="/expert" element={<ProtectedRoute><><Navbar /><TalkToExpert /></></ProtectedRoute>} />
+        <Route path="/insurance" element={<ProtectedRoute><><Navbar /><CropInsurance /></></ProtectedRoute>} />
+        <Route path="/emergency" element={<ProtectedRoute><><Navbar /><EmergencyAlerts /></></ProtectedRoute>} />
+        <Route path="/market-prices" element={<ProtectedRoute><><Navbar /><MarketPrices /></></ProtectedRoute>} />
+        <Route path="/rental" element={<ProtectedRoute><><Navbar /><MachineRental /></></ProtectedRoute>} />
+        <Route path="/training" element={<ProtectedRoute><><Navbar /><TrainingVideos /></></ProtectedRoute>} />
+        <Route path="/irrigation-source" element={<ProtectedRoute><><Navbar /><IrrigationSource /></></ProtectedRoute>} />
         </Routes>
         <VoiceToggle />
         </Router>
